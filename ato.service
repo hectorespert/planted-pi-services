@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/planted-pi-services --service=fertilizer
+ExecStart=/usr/bin/planted-pi-services --service=ato
 Restart=on-failure
 WorkingDirectory=/usr/bin
 

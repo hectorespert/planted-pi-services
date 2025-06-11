@@ -3,13 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
 	"os"
 	"path/filepath"
-	"time"
+	"strconv"
+	"strings"
 )
 
 func main() {
 	service := flag.String("service", "", "Service name (ato, fertilizer, etc.)")
+	dir := flag.String("dir", "/var/run/planted-pi-services", "Service name (ato, fertilizer, etc.)")
 	flag.Parse()
 
 	if *service == "" {
@@ -17,10 +20,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	dir := "/var/run/planted-pi-services"
-	file := filepath.Join(dir, *service)
+	file := filepath.Join(*dir, *service)
 
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(*dir, 0755); err != nil {
 		fmt.Println("Error creating dir:", err)
 		os.Exit(1)
 	}
@@ -30,15 +32,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	for {
-		fmt.Printf("%s service running on ARMv6...\n", *service)
-		data, err := os.ReadFile(file)
-		if err != nil {
-			fmt.Println("Error reading file:", err)
-			os.Exit(1)
-		}
-		fmt.Println("File content:", string(data))
-
-		time.Sleep(5 * time.Second)
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		fmt.Println("Error creating watcher:", err)
+		os.Exit(1)
 	}
+	defer watcher.Close()
+
+	err = watcher.Add(file)
+	if err != nil {
+		fmt.Println("Error adding file to watcher:", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Watching %s for changes...\n", file)
+	lastValue := 0
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				data, err := os.ReadFile(file)
+				if err != nil {
+					fmt.Println("Error reading file:", err)
+					return
+				}
+				val, err := strconv.Atoi(strings.TrimSpace(string(data)))
+				if err != nil {
+					fmt.Println("Error converting file content to integer:", err)
+					return
+				}
+				if lastValue != val {
+					fmt.Printf("Service %s: Value changed!\n", *service)
+				}
+				lastValue = val
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			fmt.Println("Watcher error:", err)
+		}
+	}
+
 }
