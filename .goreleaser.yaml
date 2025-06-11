@@ -47,3 +47,8 @@ release:
     ---
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+
+nfpms:
+  - formats:
+      - deb
