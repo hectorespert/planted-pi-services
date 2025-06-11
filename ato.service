@@ -1,0 +1,12 @@
+[Unit]
+Description=Planted Pi ATO Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/planted-pi-services --service=fertilizer
+Restart=on-failure
+WorkingDirectory=/usr/local/bin
+
+[Install]
+WantedBy=multi-user.target

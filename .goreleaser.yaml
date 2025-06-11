@@ -52,3 +52,11 @@ release:
 nfpms:
   - formats:
       - deb
+    maintainer: Hector Espert <hectorespertpardo@gmail.com>
+    contents:
+      - src: ato.service
+        dst: /lib/systemd/system/ato.service
+        type: config
+      - src: fertilizer.service
+        dst: /lib/systemd/system/fertilizer.service
+        type: config
