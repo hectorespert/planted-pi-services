@@ -60,13 +60,18 @@ func main() {
 					fmt.Println("Error reading file:", err)
 					return
 				}
-				val, err := strconv.Atoi(strings.TrimSpace(string(data)))
+				changed := strings.TrimSpace(string(data))
+				if changed == "" {
+					fmt.Println("File is empty, no changes detected.")
+					continue
+				}
+				val, err := strconv.Atoi(changed)
 				if err != nil {
 					fmt.Println("Error converting file content to integer:", err)
 					return
 				}
 				if lastValue != val {
-					fmt.Printf("Service %s: Value changed!\n", *service)
+					fmt.Printf("Service %s: Value changed to %d \n", *service, val)
 				}
 				lastValue = val
 			}
