@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/planted-pi-services --service=ato
+ExecStart=/usr/bin/planted-pi-services --service=ato --relay=1 --timer=65
 Restart=on-failure
 WorkingDirectory=/usr/bin
 

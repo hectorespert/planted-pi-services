@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/fsnotify/fsnotify"
 	"os"
 	"path/filepath"
@@ -10,9 +11,26 @@ import (
 	"strings"
 )
 
+func publishMQTT(broker, topic, payload string) error {
+	opts := mqtt.NewClientOptions().AddBroker(broker)
+	opts.SetClientID("planted-pi")
+	client := mqtt.NewClient(opts)
+	token := client.Connect()
+	if token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+	defer client.Disconnect(250)
+	token = client.Publish(topic, 0, false, payload)
+	token.Wait()
+	return token.Error()
+}
+
 func main() {
 	service := flag.String("service", "", "Service name (ato, fertilizer, etc.)")
 	dir := flag.String("dir", "/var/run/planted-pi-services", "Service name (ato, fertilizer, etc.)")
+	mqttBroker := flag.String("mqtt", "tcp://localhost:1883", "MQTT broker URL")
+	relay := flag.Int("relay", 2, "Relay number (1 or 2)")
+	timer := flag.Int("timer", 0, "Timer of seconds to off the relay")
 	flag.Parse()
 
 	if *service == "" {
@@ -32,6 +50,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	pulseTimeTopic := fmt.Sprintf("cmnd/relays/PulseTime%d", *relay)
+	err := publishMQTT(*mqttBroker, pulseTimeTopic, strconv.Itoa(*timer))
+	if err != nil {
+		fmt.Printf("Error setting PulseTime: %v\n", err)
+	} else {
+		fmt.Printf("Set PulseTime%d to %d seconds\n", *relay, *timer)
+	}
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println("Error creating watcher:", err)
@@ -45,8 +71,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	var topic = fmt.Sprintf("cmnd/relays/POWER%d", *relay)
 	fmt.Printf("Watching %s for changes...\n", file)
-	lastValue := 0
 
 	for {
 		select {
@@ -70,10 +96,18 @@ func main() {
 					fmt.Println("Error converting file content to integer:", err)
 					return
 				}
-				if lastValue != val {
-					fmt.Printf("Service %s: Value changed to %d \n", *service, val)
+
+				fmt.Printf("Service %s: Value changed to %d \n", *service, val)
+				payload := "OFF"
+				if val == 1 {
+					payload = "ON"
 				}
-				lastValue = val
+				err = publishMQTT(*mqttBroker, topic, payload)
+				if err != nil {
+					fmt.Println("Error publishing MQTT message:", err)
+				} else {
+					fmt.Printf("Sent MQTT command: %s -> %s\n", topic, payload)
+				}
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
