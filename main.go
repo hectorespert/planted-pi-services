@@ -99,7 +99,7 @@ func main() {
 
 				fmt.Printf("Service %s: Value changed to %d \n", *service, val)
 				payload := "OFF"
-				if val == 1 {
+				if val >= 1 {
 					payload = "ON"
 				}
 				err = publishMQTT(*mqttBroker, topic, payload)
