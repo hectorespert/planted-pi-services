@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: planted-pi-services
+  annotations:
+    github.com/project-slug: hectorespert/planted-pi-services
+spec:
+  type: other
+  lifecycle: unknown
+  owner: guests
