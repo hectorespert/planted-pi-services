@@ -4,6 +4,7 @@ metadata:
   name: planted-pi-services
   annotations:
     github.com/project-slug: hectorespert/planted-pi-services
+    backstage.io/techdocs-ref: dir:.
 spec:
   type: other
   lifecycle: unknown
